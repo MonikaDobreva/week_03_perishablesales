@@ -2,6 +2,7 @@ package ps;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -17,6 +18,12 @@ class CashRegister {
     private final Printer printer;
     private final UI ui;
     private final SalesService salesService;
+
+    private Map<Product, SalesRecord> perishable = new LinkedHashMap<>();
+    private Map<Product, SalesRecord> nonPerishable = new LinkedHashMap<>();
+    private Product lastScanned = null;
+    private LocalDate lastBBDate = null;
+    private int lastSalesPrice = 0;
     
     // Declare a field to keep a salesCache, which is a mapping between a Product and a SalesRecord.
     // When a product gets scanned multiple times, the quantity of the salesRecord is increased. 
@@ -24,8 +31,7 @@ class CashRegister {
     // the items were added is preserved.
     
     // Declare a field to keep track of the last scanned product, initially being null.
-    
-    // TODO Declare and initialize fields.
+
     
     /**
      * Create a business object
@@ -52,7 +58,7 @@ class CashRegister {
      * @param barcode 
      */
     public void scan(int barcode) {
-        //TODO implement scan
+
         
     }
 
@@ -90,7 +96,27 @@ class CashRegister {
      * @throws UnknownBestBeforeException in case the best before date is null.
      */
     public void correctSalesPrice(LocalDate bestBeforeDate) throws UnknownBestBeforeException {
-        //TODO implement correctSalesPrice
+        int salesPrice = 0;
+
+        if (this.lastScanned != null) {
+            if (LocalDate.now(clock).until(bestBeforeDate).getDays() >= 2) {
+                salesPrice = this.lastScanned.getPrice();
+            } else if (LocalDate.now(clock).until(bestBeforeDate).getDays() == 1) {
+                salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.65);
+            } else if (LocalDate.now(clock).until(bestBeforeDate).getDays() == 0) {
+                salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.35);
+            } else {
+                salesPrice = 0;
+            }
+
+            SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), salesPrice);
+            this.salesService.sold(sale);
+            this.perishable.put(this.lastScanned, sale);
+        }
+
+        this.lastBBDate = null;
+        this.lastSalesPrice = 0;
+        this.lastScanned = null;
         
     }
 
@@ -103,7 +129,16 @@ class CashRegister {
      * products are printed first. The non-perishables afterwards.
      */
     public void printReceipt() {
-        //TODO implement printReceipt
+        for (Map.Entry<Product, SalesRecord> perishables : this.perishable.entrySet()) {
+            this.printer.println("Product: " + perishables.getKey().getShortName() + ", Quantity: " + perishables.getValue().getQuantity() + ", Price: " + perishables.getValue().getSalesPrice() * perishables.getValue().getQuantity());
+        }
+
+        for (Map.Entry<Product, SalesRecord> nonPerishables : this.nonPerishable.entrySet()) {
+            this.printer.println("Product: " + nonPerishables.getKey().getShortName() + ", Quantity: " + nonPerishables.getValue().getQuantity() + ", Price: " + nonPerishables.getValue().getSalesPrice() * nonPerishables.getValue().getQuantity());
+        }
+
+        this.perishable.clear();
+        this.nonPerishable.clear();
         
     }
 }
