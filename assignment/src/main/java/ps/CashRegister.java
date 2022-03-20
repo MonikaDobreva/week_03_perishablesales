@@ -57,8 +57,25 @@ class CashRegister {
      * The product is displayed on the display.
      * @param barcode 
      */
-    public void scan(int barcode) {
+    public void scan(int barcode) throws UnknownProductException, UnknownBestBeforeException { //added exception handling
+        if (this.lastScanned != null) {
+            finalizeSalesTransaction();
+        }
 
+        if(this.salesService.lookupProduct(barcode) == null){
+            ui.displayErrorMessage("No product found!");
+            throw new UnknownProductException("No product found!");
+        }
+
+        this.lastScanned = this.salesService.lookupProduct(barcode);
+        this.ui.displayProduct(this.lastScanned);
+
+        if (this.lastScanned.isPerishable()) {
+            this.ui.displayCalendar();
+        } else {
+            this.lastSalesPrice = this.lastScanned.getPrice();
+            this.lastBBDate = LocalDate.MAX;
+        }
         
     }
 
@@ -67,8 +84,24 @@ class CashRegister {
      * All salesRecords in the salesCache are stored (one-by-one) in the salesService.
      * All caches are reset.
      */
-    public void finalizeSalesTransaction() {
-        //TODO implement finalizeSalesTransaction()
+    public void finalizeSalesTransaction() throws UnknownBestBeforeException { //added exception handling
+        if (this.lastBBDate == null && this.lastScanned.isPerishable()) {
+            throw new UnknownBestBeforeException("Cannot have perishable product without a best before date!");
+        }
+
+        if (this.lastScanned.isPerishable()) {
+            this.lastSalesPrice = this.lastScanned.getPrice();
+            correctSalesPrice(this.lastBBDate);
+        } else {
+            SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
+            this.salesService.sold(sale);
+
+            this.nonPerishable.put(this.lastScanned, sale);
+        }
+
+        this.lastBBDate = null;
+        this.lastSalesPrice = 0;
+        this.lastScanned = null;
         
     }
 
@@ -96,14 +129,18 @@ class CashRegister {
      * @throws UnknownBestBeforeException in case the best before date is null.
      */
     public void correctSalesPrice(LocalDate bestBeforeDate) throws UnknownBestBeforeException {
+        if(bestBeforeDate == null){
+            throw new UnknownBestBeforeException("Best before date must not be null!");
+        }
+
         int salesPrice = 0;
 
         if (this.lastScanned != null) {
-            if (LocalDate.now(clock).until(bestBeforeDate).getDays() >= 2) {
+            if (LocalDate.now(this.clock).until(bestBeforeDate).getDays() >= 2) {
                 salesPrice = this.lastScanned.getPrice();
-            } else if (LocalDate.now(clock).until(bestBeforeDate).getDays() == 1) {
+            } else if (LocalDate.now(this.clock).until(bestBeforeDate).getDays() == 1) {
                 salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.65);
-            } else if (LocalDate.now(clock).until(bestBeforeDate).getDays() == 0) {
+            } else if (LocalDate.now(this.clock).until(bestBeforeDate).getDays() == 0) {
                 salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.35);
             } else {
                 salesPrice = 0;
@@ -130,15 +167,14 @@ class CashRegister {
      */
     public void printReceipt() {
         for (Map.Entry<Product, SalesRecord> perishables : this.perishable.entrySet()) {
-            this.printer.println("Product: " + perishables.getKey().getShortName() + ", Quantity: " + perishables.getValue().getQuantity() + ", Price: " + perishables.getValue().getSalesPrice() * perishables.getValue().getQuantity());
+            this.printer.println("Product: " + perishables.getKey().getDescription() + ", Sales price: " + perishables.getValue().getSalesPrice() + ", Quantity: " + perishables.getValue().getQuantity());
         }
 
         for (Map.Entry<Product, SalesRecord> nonPerishables : this.nonPerishable.entrySet()) {
-            this.printer.println("Product: " + nonPerishables.getKey().getShortName() + ", Quantity: " + nonPerishables.getValue().getQuantity() + ", Price: " + nonPerishables.getValue().getSalesPrice() * nonPerishables.getValue().getQuantity());
+            this.printer.println("Product: " + nonPerishables.getKey().getDescription() + ", Sales price: " + nonPerishables.getValue().getSalesPrice() + ", Quantity: " + nonPerishables.getValue().getQuantity());
         }
 
         this.perishable.clear();
         this.nonPerishable.clear();
-        
     }
 }

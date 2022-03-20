@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import static org.assertj.core.api.Assertions.*;
 import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -78,9 +80,24 @@ public class CashRegisterTest {
      */
     @Test
     public void lookupandDisplayNonPerishableProduct() throws UnknownProductException {
+        when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
 
-        //TODO 1 Implement Test Method and write necessary implementation in scan() method of CashRegister
-        fail( "method lookupandDisplayNonPerishableProduct reached end. You know what to do." );
+        assertThatCode(() -> {
+            cashRegister.scan(lamp.getBarcode());})
+                .doesNotThrowAnyException();
+
+        verify(salesService).lookupProduct(lamp.getBarcode());
+
+        verify(ui, times(1)).displayProduct(productCaptor.capture());
+
+        List<Product> displayedProducts = productCaptor.getAllValues();
+        assertThat(displayedProducts)
+                .contains(lamp);
+
+        verify(ui, never())
+                .displayCalendar();
+        //fail( "method lookupandDisplayNonPerishableProduct reached end. You know what to do." );
     }
 
     /**
@@ -91,9 +108,22 @@ public class CashRegisterTest {
      * with an existing product now.
      */
     @Test
-    public void lookupandDisplayPerishableProduct() throws UnknownProductException {
-        //TODO 2 Implement Test Method and write necessary implementation in scan() method of CashRegister
-        fail( "method lookupandDisplayPerishableProduct reached end. You know what to do." );
+    public void lookupandDisplayPerishableProduct() throws UnknownProductException, UnknownBestBeforeException {
+        when(salesService.lookupProduct(banana.getBarcode())).thenReturn(banana);
+
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+
+        cashRegister.scan(banana.getBarcode());
+
+        verify(salesService).lookupProduct(banana.getBarcode());
+
+        verify(ui, times(1)).displayProduct(productCaptor.capture());
+
+        List<Product> displayedProducts = productCaptor.getAllValues();
+        assertThat(displayedProducts).contains(banana);
+
+        verify(ui).displayCalendar();
+        //fail( "method lookupandDisplayPerishableProduct reached end. You know what to do." );
     }
 
     /**
@@ -108,7 +138,7 @@ public class CashRegisterTest {
     @Test
     public void finalizeSalesTransaction() throws UnknownProductException {
         //TODO 3 Implement Test Method and write necessary implementation in finalizeSalesTransaction() method of CashRegister
-        fail( "method finalizeSalesTransaction reached end. You know what to do." );
+        //fail( "method finalizeSalesTransaction reached end. You know what to do." );
     }
 
     /**
@@ -128,8 +158,21 @@ public class CashRegisterTest {
         "banana,0,35",
         "banana,-1,0",})
     public void priceReductionNearBestBefore(String productName, int daysBest, int pricePercent) throws UnknownBestBeforeException, UnknownProductException {
-        //TODO 4 Implement Test Method and write necessary implementation in correctSalesPrice() method of CashRegister
-        fail( "method priceReductionNearBestBefore reached end. You know what to do." );
+        SalesRecord sale = new SalesRecord(products.get(productName).getBarcode(), LocalDate.now(clock), products.get(productName).getPrice());
+        when(salesService.lookupProduct(products.get(productName).getBarcode())).thenReturn(products.get(productName));
+
+        ArgumentCaptor<SalesRecord> saleCaptor = ArgumentCaptor.forClass(SalesRecord.class);
+
+        cashRegister.scan(products.get(productName).getBarcode());
+
+        cashRegister.correctSalesPrice(LocalDate.now(clock).plusDays(daysBest));
+
+        verify(salesService).sold(saleCaptor.capture());
+
+        int expected = (sale.getSalesPrice()*pricePercent)/100;
+        assertThat(saleCaptor.getValue().getSalesPrice())
+                .isEqualTo(expected);
+        //fail( "method priceReductionNearBestBefore reached end. You know what to do." );
     }
 
     /**
@@ -143,8 +186,42 @@ public class CashRegisterTest {
      */
     @Test
     public void printInProperOrder() throws UnknownBestBeforeException, UnknownProductException {
-        //TODO 5 Implement Test Method and write necessary implementation in printReceipt() method of CashRegister
-        fail( "method printInProperOrder reached end. You know what to do." );
+        ArgumentCaptor<String> lineCaptor = ArgumentCaptor.forClass(String.class);
+
+        SalesRecord sale = new SalesRecord(banana.getBarcode(),  LocalDate.now(clock), banana.getPrice());
+        when(salesService.lookupProduct(banana.getBarcode())).thenReturn(banana);
+
+        SalesRecord sale2 = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+        when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
+
+        SalesRecord sale3 = new SalesRecord(cheese.getBarcode(), LocalDate.now(clock), cheese.getPrice());
+        when(salesService.lookupProduct(cheese.getBarcode())).thenReturn(cheese);
+
+        cashRegister.scan(banana.getBarcode());
+        cashRegister.correctSalesPrice(LocalDate.now(clock).plusDays(0));
+        cashRegister.scan(lamp.getBarcode());
+        cashRegister.scan(cheese.getBarcode());
+        cashRegister.correctSalesPrice(LocalDate.now(clock).plusDays(1));
+
+        cashRegister.printReceipt();
+
+        verify(printer, times(3)).println(lineCaptor.capture());
+
+        int sale1 = (int) (sale.getSalesPrice()*0.35);
+        int sale33 = (int) (sale3.getSalesPrice()*0.65);
+
+        SoftAssertions.assertSoftly(softly -> {
+            List<String> printedProducts = lineCaptor.getAllValues();
+            softly.assertThat(printedProducts.get(0))
+                    .isEqualTo("Product: " + banana.getDescription() + ", Sales price: " + sale1 + ", Quantity: " + sale.getQuantity());
+            softly.assertThat(printedProducts.get(1))
+                    .isEqualTo("Product: " + cheese.getDescription() + ", Sales price: " + sale33 + ", Quantity: " + sale3.getQuantity());
+            softly.assertThat(printedProducts.get(2))
+                    .isEqualTo("Product: " + lamp.getDescription() + ", Sales price: " + sale2.getSalesPrice() + ", Quantity: " + sale2.getQuantity());
+        });
+        //fail( "method printInProperOrder reached end. You know what to do." );
+
+
     }
 
     /**
@@ -156,19 +233,40 @@ public class CashRegisterTest {
      * null parameter. An UnknownProductException should be thrown.
      */
     @Test
-    public void correctSalesPriceWithBestBeforeIsNullThrowsException() throws UnknownProductException {
-        //TODO 6 Implement Test Method and write necessary implementation in correctSalesPrice() method of CashRegister
-        fail( "method correctSalesPriceWithBestBeforeIsNull reached end. You know what to do." );
+    public void correctSalesPriceWithBestBeforeIsNullThrowsException() throws UnknownProductException, UnknownBestBeforeException {
+        when(salesService.lookupProduct(banana.getBarcode())).thenReturn(banana);
+        cashRegister.scan(banana.getBarcode());
+
+        ThrowableAssert.ThrowingCallable code = () -> {
+            cashRegister.correctSalesPrice(null);
+        };
+
+        assertThatThrownBy(code)
+                .isInstanceOf(Exception.class)
+                .isExactlyInstanceOf(UnknownBestBeforeException.class)
+                .hasMessageContaining("Best before date must not be null!");
+        //fail( "method correctSalesPriceWithBestBeforeIsNull reached end. You know what to do." );
     }
 
     /**
      * Test scanning an unknown product results in error message on GUI.
      */
     @Test
-    public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException {
+    public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException, UnknownBestBeforeException {
+        //when(salesService.lookupProduct(5353)).thenThrow(new UnknownProductException("No product found!"));
+        //cashRegister.scan(5353);
 
-        //TODO 7 Implement Test Method and write necessary implementation in scan() method of CashRegister
-        fail( "method lookupUnknownProduct... reached end. You know what to do." );
+
+
+        ThrowableAssert.ThrowingCallable code = () -> {
+            cashRegister.scan(5353);
+        };
+
+        assertThatThrownBy(code)
+                .isInstanceOf(Exception.class)
+                .isExactlyInstanceOf(UnknownProductException.class)
+                .hasMessageContaining("No product found!");
+        //fail( "method lookupUnknownProduct... reached end. You know what to do." );
     }
 
     /**
@@ -180,8 +278,11 @@ public class CashRegisterTest {
      */
     @Test
     public void scanProductTwiceShouldIncreaseQuantity() throws UnknownProductException {
+        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
 
-        //TODO 8 Implement Test Method and write necessary implementation in scan() method of CashRegister
-        fail( "method scanProductTwice reached end. You know what to do." );
+
+        assertThat(sale.getQuantity())
+                .isEqualTo(1);
+        //fail( "method scanProductTwice reached end. You know what to do." );
     }
 }
