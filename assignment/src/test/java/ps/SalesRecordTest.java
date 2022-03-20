@@ -72,9 +72,6 @@ public class SalesRecordTest {
     }
 
 
-
-
-
     @Test
     void setSalesPrice() {
         this.sale.setSalesPrice(32);

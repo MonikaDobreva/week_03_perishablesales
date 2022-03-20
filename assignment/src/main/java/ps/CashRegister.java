@@ -85,9 +85,7 @@ class CashRegister {
      * All caches are reset.
      */
     public void finalizeSalesTransaction() throws UnknownBestBeforeException { //added exception handling
-        /*if (this.lastBBDate == null && this.lastScanned.isPerishable()) {
-            throw new UnknownBestBeforeException("Cannot have perishable product without a best before date!");
-        }*/
+
 
         if (this.lastScanned.isPerishable()) {
             this.lastSalesPrice = this.lastScanned.getPrice();
