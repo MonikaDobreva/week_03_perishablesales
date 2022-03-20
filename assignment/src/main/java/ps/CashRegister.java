@@ -3,7 +3,9 @@ package ps;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -19,11 +21,12 @@ class CashRegister {
     private final UI ui;
     private final SalesService salesService;
 
-    private Map<Product, SalesRecord> perishable = new LinkedHashMap<>();
-    private Map<Product, SalesRecord> nonPerishable = new LinkedHashMap<>();
+    private Map<Product, SalesRecord> salesCache = new LinkedHashMap<>();
     private Product lastScanned = null;
     private LocalDate lastBBDate = null;
     private int lastSalesPrice = 0;
+    private List<SalesRecord> list = new ArrayList<>();
+    private List<SalesRecord> list2 = new ArrayList<>();
     
     // Declare a field to keep a salesCache, which is a mapping between a Product and a SalesRecord.
     // When a product gets scanned multiple times, the quantity of the salesRecord is increased. 
@@ -58,13 +61,23 @@ class CashRegister {
      * @param barcode 
      */
     public void scan(int barcode) throws UnknownProductException, UnknownBestBeforeException { //added exception handling
-        if (this.lastScanned != null) {
+/*        if (this.lastScanned != null) {
             finalizeSalesTransaction();
-        }
+        }*/
+
+
 
         if(this.salesService.lookupProduct(barcode) == null){
-            ui.displayErrorMessage("No product found!");
+            this.ui.displayErrorMessage("No product found!");
             throw new UnknownProductException("No product found!");
+        }
+
+        if(this.salesCache.containsKey(this.salesService.lookupProduct(barcode))){
+            this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
+        } else{
+            SalesRecord sale = new SalesRecord(barcode, LocalDate.now(this.clock), this.salesService.lookupProduct(barcode).getPrice());
+            this.salesCache.put(this.salesService.lookupProduct(barcode), sale);
+
         }
 
         this.lastScanned = this.salesService.lookupProduct(barcode);
@@ -91,12 +104,19 @@ class CashRegister {
             this.lastSalesPrice = this.lastScanned.getPrice();
             correctSalesPrice(this.lastBBDate);
         } else {*/
-            SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
-            this.salesService.sold(sale);
+            //SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
 
-            this.nonPerishable.put(this.lastScanned, sale);
+        for (Map.Entry<Product, SalesRecord> sales : this.salesCache.entrySet()) {
+            if(sales.getKey().isPerishable()){
+                list.add(sales.getValue());
+            } else{
+                list2.add(sales.getValue());
+            }
+            this.salesService.sold(sales.getValue());
+            this.list.add(sales.getValue());
+        }
 
-
+        this.salesCache.clear();
         this.lastBBDate = null;
         this.lastSalesPrice = 0;
         this.lastScanned = null;
@@ -146,7 +166,7 @@ class CashRegister {
 
             SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), salesPrice);
             this.salesService.sold(sale);
-            this.perishable.put(this.lastScanned, sale);
+            this.salesCache.put(this.lastScanned, sale);
         }
 
         this.lastBBDate = null;
@@ -163,16 +183,18 @@ class CashRegister {
      * The order of printing is the order of scanning, however Perishable
      * products are printed first. The non-perishables afterwards.
      */
-    public void printReceipt() {
-        for (Map.Entry<Product, SalesRecord> perishables : this.perishable.entrySet()) {
-            this.printer.println("Product: " + perishables.getKey().getDescription() + ", Sales price: " + perishables.getValue().getSalesPrice() + ", Quantity: " + perishables.getValue().getQuantity());
+    public void printReceipt() throws UnknownProductException {
+        /*for (Map.Entry<Product, SalesRecord> sales : this.salesCache.entrySet()) {
+            this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
         }
 
-        for (Map.Entry<Product, SalesRecord> nonPerishables : this.nonPerishable.entrySet()) {
-            this.printer.println("Product: " + nonPerishables.getKey().getDescription() + ", Sales price: " + nonPerishables.getValue().getSalesPrice() + ", Quantity: " + nonPerishables.getValue().getQuantity());
+        this.salesCache.clear();*/
+        int j;
+        for(j = 0; j < list.size(); j++){
+            this.printer.println("Product: " + salesService.lookupProduct(list.get(j).getBarcode()) + ", Sales price: " + list.get(j).getSalesPrice() + ", Quantity: " + list.get(j).getQuantity());
         }
-
-        this.perishable.clear();
-        this.nonPerishable.clear();
+        for(j = 0; j < list2.size(); j++){
+            this.printer.println("Product: " + salesService.lookupProduct(list2.get(j).getBarcode()) + ", Sales price: " + list2.get(j).getSalesPrice() + ", Quantity: " + list2.get(j).getQuantity());
+        }
     }
 }

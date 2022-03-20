@@ -13,7 +13,6 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 public class SalesRecordTest {
 
-
     /**
      * Since SalesRecord is a simple value class, we only test constructor, getter
      * methods and toString.

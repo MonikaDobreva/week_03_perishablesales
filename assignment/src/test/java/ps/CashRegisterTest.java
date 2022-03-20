@@ -137,8 +137,9 @@ public class CashRegisterTest {
      */
     @Test
     public void finalizeSalesTransaction() throws UnknownProductException, UnknownBestBeforeException {
-        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
         when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
+
+
 
         ArgumentCaptor<SalesRecord> saleCaptor = ArgumentCaptor.forClass(SalesRecord.class);
 
@@ -149,7 +150,7 @@ public class CashRegisterTest {
 
         verify(salesService).sold(saleCaptor.capture());
 
-        verify(printer, times(0)).println(printc.capture());
+        verify(printer, times(2)).println(printc.capture());
 
         assertThat(saleCaptor.getValue())
                 .usingRecursiveComparison().isEqualTo(sale);
@@ -292,12 +293,33 @@ public class CashRegisterTest {
      * @throws UnknownProductException
      */
     @Test
-    public void scanProductTwiceShouldIncreaseQuantity() throws UnknownProductException {
-        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+    public void scanProductTwiceShouldIncreaseQuantity() throws UnknownProductException, UnknownBestBeforeException {
+        /*SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
 
 
         assertThat(sale.getQuantity())
-                .isEqualTo(1);
+                .isEqualTo(1);*/
+        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+        when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
+
+
+        ArgumentCaptor<String> lineCaptor = ArgumentCaptor.forClass(String.class);
+
+        cashRegister.scan(lamp.getBarcode());
+        cashRegister.scan(lamp.getBarcode());
+        cashRegister.printReceipt();
+
+        verify(printer).println(lineCaptor.capture());
+
+        SoftAssertions.assertSoftly(softly -> {
+            List<String> printedProducts = lineCaptor.getAllValues();
+            softly.assertThat(printedProducts.get(0))
+                    .isEqualTo("Product: " + lamp.getDescription() + ", Sales price: " + lamp.getPrice() + ", Quantity: " + 2);
+            softly.assertThat(sale.getQuantity())
+                    .isEqualTo(2);
+        });
+
+
         //fail( "method scanProductTwice reached end. You know what to do." );
     }
 
