@@ -87,15 +87,15 @@ class CashRegister {
     public void finalizeSalesTransaction() throws UnknownBestBeforeException { //added exception handling
 
 
-        if (this.lastScanned.isPerishable()) {
+/*        if (this.lastScanned.isPerishable()) {
             this.lastSalesPrice = this.lastScanned.getPrice();
             correctSalesPrice(this.lastBBDate);
-        } else {
+        } else {*/
             SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
             this.salesService.sold(sale);
 
             this.nonPerishable.put(this.lastScanned, sale);
-        }
+
 
         this.lastBBDate = null;
         this.lastSalesPrice = 0;

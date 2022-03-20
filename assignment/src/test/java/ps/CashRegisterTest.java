@@ -276,7 +276,7 @@ public class CashRegisterTest {
      *
      * @throws UnknownProductException
      */
-   /* @Test
+    @Test
     public void scanProductTwiceShouldIncreaseQuantity() throws UnknownProductException {
         SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
 
@@ -284,10 +284,14 @@ public class CashRegisterTest {
         assertThat(sale.getQuantity())
                 .isEqualTo(1);
         //fail( "method scanProductTwice reached end. You know what to do." );
-    }*/
-
-    @Test
-    public void fixIt(){
-
     }
+
+/*    @Test
+    public void fixIt() throws UnknownProductException, UnknownBestBeforeException {
+        when(salesService.lookupProduct(banana.getBarcode())).thenReturn(banana);
+        cashRegister.scan(banana.getBarcode());
+        cashRegister.finalizeSalesTransaction();
+
+        assertThat()
+    }*/
 }
