@@ -136,8 +136,23 @@ public class CashRegisterTest {
      * @throws ps.UnknownProductException
      */
     @Test
-    public void finalizeSalesTransaction() throws UnknownProductException {
-        //TODO 3 Implement Test Method and write necessary implementation in finalizeSalesTransaction() method of CashRegister
+    public void finalizeSalesTransaction() throws UnknownProductException, UnknownBestBeforeException {
+        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+        when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
+
+        ArgumentCaptor<SalesRecord> saleCaptor = ArgumentCaptor.forClass(SalesRecord.class);
+
+        ArgumentCaptor<String> printc = ArgumentCaptor.forClass(String.class);
+
+        cashRegister.scan(lamp.getBarcode());
+        cashRegister.scan(lamp.getBarcode());
+
+        verify(salesService).sold(saleCaptor.capture());
+
+        verify(printer, times(0)).println(printc.capture());
+
+        assertThat(saleCaptor.getValue())
+                .usingRecursiveComparison().isEqualTo(sale);
         //fail( "method finalizeSalesTransaction reached end. You know what to do." );
     }
 
