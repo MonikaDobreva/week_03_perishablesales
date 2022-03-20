@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.CsvSource;
  * @author Pieter van den Hombergh / Richard van den Ham
  */
 public class SalesRecordTest {
+    SalesRecord sale = new SalesRecord(2323, LocalDate.now(), 21);
 
     /**
      * Since SalesRecord is a simple value class, we only test constructor, getter
@@ -68,6 +69,17 @@ public class SalesRecordTest {
             sr.increaseQuantity(5);
             softly.assertThat( sr.getQuantity() ).as("Quantity after adding 5 must be 6").isEqualTo(6);
         } );
+    }
+
+
+
+
+
+    @Test
+    void setSalesPrice() {
+        this.sale.setSalesPrice(32);
+        assertThat(this.sale.getSalesPrice())
+                .isEqualTo(32);
     }
 
 }
