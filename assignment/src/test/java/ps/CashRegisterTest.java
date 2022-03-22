@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import static org.assertj.core.api.Assertions.*;
+
+import net.bytebuddy.asm.Advice;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -139,21 +141,33 @@ public class CashRegisterTest {
     public void finalizeSalesTransaction() throws UnknownProductException, UnknownBestBeforeException {
         when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
 
+        SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+
+        cashRegister.scan(lamp.getBarcode());
+        cashRegister.finalizeSalesTransaction();
 
 
         ArgumentCaptor<SalesRecord> saleCaptor = ArgumentCaptor.forClass(SalesRecord.class);
 
         ArgumentCaptor<String> printc = ArgumentCaptor.forClass(String.class);
 
-        cashRegister.scan(lamp.getBarcode());
-        cashRegister.scan(lamp.getBarcode());
+
 
         verify(salesService).sold(saleCaptor.capture());
 
-        verify(printer, times(2)).println(printc.capture());
+        cashRegister.printReceipt();
 
-        assertThat(saleCaptor.getValue())
-                .usingRecursiveComparison().isEqualTo(sale);
+        verify(printer).println(printc.capture());
+
+        /*assertThat(saleCaptor.getValue())
+                .usingRecursiveComparison().isEqualTo(sale);*/
+
+        SoftAssertions.assertSoftly(softly -> {
+                    softly.assertThat(printc.getValue())
+                            .isEqualTo(" ");
+                    softly.assertThat(saleCaptor.getValue())
+                            .usingRecursiveComparison().isEqualTo(sale);
+                });
         //fail( "method finalizeSalesTransaction reached end. You know what to do." );
     }
 
@@ -183,11 +197,14 @@ public class CashRegisterTest {
 
         cashRegister.correctSalesPrice(LocalDate.now(clock).plusDays(daysBest));
 
+        cashRegister.finalizeSalesTransaction();
         verify(salesService).sold(saleCaptor.capture());
 
         int expected = (sale.getSalesPrice()*pricePercent)/100;
         assertThat(saleCaptor.getValue().getSalesPrice())
                 .isEqualTo(expected);
+
+
         //fail( "method priceReductionNearBestBefore reached end. You know what to do." );
     }
 
@@ -300,6 +317,7 @@ public class CashRegisterTest {
         assertThat(sale.getQuantity())
                 .isEqualTo(1);*/
         SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
+        sale.increaseQuantity(1);
         when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);
 
 
