@@ -194,17 +194,13 @@ class CashRegister {
      * products are printed first. The non-perishables afterwards.
      */
     public void printReceipt() {
-        if(this.salesCache.isEmpty() && salesCacheP.isEmpty()){
-            printer.println(" ");
-        /*} else if(salesCacheP.isEmpty()){
-            printer.println(" ");*/
-        } else {
+
             for (Map.Entry<Product, SalesRecord> sales : this.salesCacheP.entrySet()) {
                 this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
             }
             for (Map.Entry<Product, SalesRecord> sales : this.salesCache.entrySet()) {
                 this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
-            }
+
         }
 
         //this.salesCache.clear();
