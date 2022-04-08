@@ -61,17 +61,16 @@ class CashRegister {
      * The product is displayed on the display.
      * @param barcode 
      */
-    public void scan(int barcode) throws UnknownProductException, UnknownBestBeforeException { //added exception handling
+    public void scan(int barcode)  {
 /*        if (this.lastScanned != null) {
             finalizeSalesTransaction();
         }*/
 
 
-
-        if(this.salesService.lookupProduct(barcode) == null){
-            this.ui.displayErrorMessage("No product found!");
-            throw new UnknownProductException("No product found!");
-        }
+        try {
+            if(this.salesService.lookupProduct(barcode) == null){
+                this.ui.displayErrorMessage("No product found!");
+            }
 
         if(this.salesCache.containsKey(this.salesService.lookupProduct(barcode))) {
             this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
@@ -96,6 +95,9 @@ class CashRegister {
             this.lastSalesPrice = this.lastScanned.getPrice();
             this.lastBBDate = LocalDate.MAX;
         }
+        } catch (UnknownProductException e) {
+            e.printStackTrace();
+        }
         
     }
 
@@ -104,7 +106,7 @@ class CashRegister {
      * All salesRecords in the salesCache are stored (one-by-one) in the salesService.
      * All caches are reset.
      */
-    public void finalizeSalesTransaction() throws UnknownBestBeforeException { //added exception handling
+    public void finalizeSalesTransaction() {
 
 
 /*        if (this.lastScanned.isPerishable()) {
@@ -172,8 +174,6 @@ class CashRegister {
                 salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.65);
             } else if (LocalDate.now(this.clock).until(bestBeforeDate).getDays() == 0) {
                 salesPrice = (int) ((double) this.lastScanned.getPrice() * 0.35);
-            } else {
-                salesPrice = 0;
             }
             this.salesCacheP.get(this.lastScanned).setSalesPrice(salesPrice);
         }

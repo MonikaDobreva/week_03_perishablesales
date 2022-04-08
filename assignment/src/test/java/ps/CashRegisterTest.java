@@ -159,7 +159,7 @@ public class CashRegisterTest {
         verify(salesService).sold(saleCaptor.capture());
 
         cashRegister.printReceipt();
-        //call finlize, then print
+        //call finalize, then print
 
         verify(printer, never()).println(printc.capture());
 
