@@ -66,7 +66,7 @@ class CashRegister {
 
         try {
             if (this.salesService.lookupProduct(barcode) == null) {
-                this.ui.displayErrorMessage("No product found!");
+                this.ui.displayErrorMessage("This product is unknown");
                 return;
             }
 

@@ -291,8 +291,9 @@ public class CashRegisterTest {
     @Test
     public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException {
         //when(salesService.lookupProduct(123)).thenReturn(new Product("as", "sdsd", 123, 123, false));
+        when(salesService.lookupProduct(123)).thenReturn(null);
         cashRegister.scan(123);
-        verify(ui).displayErrorMessage("No product found!");
+        verify(ui).displayErrorMessage("This product is unknown");
         //fail( "method lookupUnknownProduct... reached end. You know what to do." );
     }
 
