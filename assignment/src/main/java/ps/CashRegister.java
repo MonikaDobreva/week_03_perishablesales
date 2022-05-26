@@ -72,6 +72,7 @@ class CashRegister {
 
             if (this.salesCache.containsKey(this.salesService.lookupProduct(barcode))) {
                 this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
+                return;
             } else if (this.salesCacheP.containsKey(this.salesService.lookupProduct(barcode))) {
                 this.salesCacheP.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
             } else {
