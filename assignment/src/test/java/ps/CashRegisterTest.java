@@ -289,19 +289,10 @@ public class CashRegisterTest {
      * Test scanning an unknown product results in error message on GUI.
      */
     @Test
-    public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException, UnknownBestBeforeException {
-        //when(salesService.lookupProduct(5353)).thenThrow(new UnknownProductException("No product found!"));
-        //cashRegister.scan(5353);
-
-
-        ThrowableAssert.ThrowingCallable code = () -> {
-            cashRegister.scan(5353);
-        };
-
-        assertThatThrownBy(code)
-                .isInstanceOf(Exception.class)
-                .isExactlyInstanceOf(UnknownProductException.class)
-                .hasMessageContaining("No product found!");
+    public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException {
+        //when(salesService.lookupProduct(123)).thenReturn(new Product("as", "sdsd", 123, 123, false));
+        cashRegister.scan(123);
+        verify(ui).displayErrorMessage("No product found!");
         //fail( "method lookupUnknownProduct... reached end. You know what to do." );
     }
 
@@ -314,11 +305,6 @@ public class CashRegisterTest {
      */
     @Test
     public void scanProductTwiceShouldIncreaseQuantity() throws UnknownProductException, UnknownBestBeforeException {
-        /*SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
-
-
-        assertThat(sale.getQuantity())
-                .isEqualTo(1);*/
         SalesRecord sale = new SalesRecord(lamp.getBarcode(), LocalDate.now(clock), lamp.getPrice());
         sale.increaseQuantity(1);
         when(salesService.lookupProduct(lamp.getBarcode())).thenReturn(lamp);

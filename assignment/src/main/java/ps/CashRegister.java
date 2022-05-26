@@ -28,21 +28,21 @@ class CashRegister {
     private int lastSalesPrice = 0;
     private List<SalesRecord> list = new ArrayList<>();
     private List<SalesRecord> list2 = new ArrayList<>();
-    
+
     // Declare a field to keep a salesCache, which is a mapping between a Product and a SalesRecord.
     // When a product gets scanned multiple times, the quantity of the salesRecord is increased. 
     // A LinkedHashMap has the benefit that, in contrast to the HashMap, the order in which 
     // the items were added is preserved.
-    
+
     // Declare a field to keep track of the last scanned product, initially being null.
 
-    
+
     /**
      * Create a business object
      *
-     * @param clock wall clock
-     * @param printer to use
-     * @param ui to use
+     * @param clock        wall clock
+     * @param printer      to use
+     * @param ui           to use
      * @param salesService to use
      */
     CashRegister(Clock clock, Printer printer, UI ui, SalesService salesService) {
@@ -59,45 +59,44 @@ class CashRegister {
      * If found, check if there is a salesRecord for this product already. If not, create one. If it exists, update the quantity.
      * In case a perishable product was scanned, the cashier should get a calendar on his/her display.
      * The product is displayed on the display.
-     * @param barcode 
+     *
+     * @param barcode
      */
-    public void scan(int barcode)  {
-/*        if (this.lastScanned != null) {
-            finalizeSalesTransaction();
-        }*/
-        
+    public void scan(int barcode) {
+
         try {
-            if(this.salesService.lookupProduct(barcode) == null){
+            if (this.salesService.lookupProduct(barcode) == null) {
                 this.ui.displayErrorMessage("No product found!");
+                return;
             }
 
-        if(this.salesCache.containsKey(this.salesService.lookupProduct(barcode))) {
-            this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
-        } else if(this.salesCacheP.containsKey(this.salesService.lookupProduct(barcode))){
-            this.salesCacheP.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
-        } else{
-            SalesRecord sale = new SalesRecord(barcode, LocalDate.now(this.clock), this.salesService.lookupProduct(barcode).getPrice());
-            if(this.salesService.lookupProduct(barcode).isPerishable()){
-                this.salesCacheP.put(this.salesService.lookupProduct(barcode), sale);
+            if (this.salesCache.containsKey(this.salesService.lookupProduct(barcode))) {
+                this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
+            } else if (this.salesCacheP.containsKey(this.salesService.lookupProduct(barcode))) {
+                this.salesCacheP.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
             } else {
-                this.salesCache.put(this.salesService.lookupProduct(barcode), sale);
+                SalesRecord sale = new SalesRecord(barcode, LocalDate.now(this.clock), this.salesService.lookupProduct(barcode).getPrice());
+                if (this.salesService.lookupProduct(barcode).isPerishable()) {
+                    this.salesCacheP.put(this.salesService.lookupProduct(barcode), sale);
+                } else {
+                    this.salesCache.put(this.salesService.lookupProduct(barcode), sale);
+                }
+
             }
 
-        }
+            this.lastScanned = this.salesService.lookupProduct(barcode);
+            this.ui.displayProduct(this.lastScanned);
 
-        this.lastScanned = this.salesService.lookupProduct(barcode);
-        this.ui.displayProduct(this.lastScanned);
-
-        if (this.lastScanned.isPerishable()) {
-            this.ui.displayCalendar();
-        } else {
-            this.lastSalesPrice = this.lastScanned.getPrice();
-            this.lastBBDate = LocalDate.MAX;
-        }
+            if (this.lastScanned.isPerishable()) {
+                this.ui.displayCalendar();
+            } else {
+                this.lastSalesPrice = this.lastScanned.getPrice();
+                this.lastBBDate = LocalDate.MAX;
+            }
         } catch (UnknownProductException e) {
             e.printStackTrace();
         }
-        
+
     }
 
     /**
@@ -112,7 +111,7 @@ class CashRegister {
             this.lastSalesPrice = this.lastScanned.getPrice();
             correctSalesPrice(this.lastBBDate);
         } else {*/
-            //SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
+        //SalesRecord sale = new SalesRecord(this.lastScanned.getBarcode(), LocalDate.now(this.clock), this.lastSalesPrice);
         /*if (this.lastScanned != null && this.lastScanned.isPerishable()) {
             this.lastSalesPrice = this.lastScanned.getPrice();
             correctSalesPrice(this.lastBBDate);
@@ -140,27 +139,27 @@ class CashRegister {
      * Correct the sales price of the last scanned product by considering the
      * given best before date, then submit the product to the service and save
      * in list.
-     *
+     * <p>
      * This method consults the clock to see if the product is eligible for a
      * price reduction because it is near or at its best before date.
-     * 
-     * Precondition is that the last scanned product is the perishable product. 
-     * You don't need to check that in your code. 
-     * 
+     * <p>
+     * Precondition is that the last scanned product is the perishable product.
+     * You don't need to check that in your code.
+     * <p>
      * To find the number of days from now till the bestBeforeDate, use
      * LocalDate.now(clock).until(bestBeforeDate).getDays();
-     * 
-     * Depending on the number of days, update the price in the salesRecord folowing the 
+     * <p>
+     * Depending on the number of days, update the price in the salesRecord folowing the
      * pricing strategy as described in the assignment
-     *
-     * Update the salesRecord belonging to the last scanned product if necessary, so 
+     * <p>
+     * Update the salesRecord belonging to the last scanned product if necessary, so
      * update the price and set the BestBeforeDate.
-     * 
+     *
      * @param bestBeforeDate
      * @throws UnknownBestBeforeException in case the best before date is null.
      */
     public void correctSalesPrice(LocalDate bestBeforeDate) throws UnknownBestBeforeException {
-        if(bestBeforeDate == null){
+        if (bestBeforeDate == null) {
             throw new UnknownBestBeforeException("Best before date must not be null!");
         }
 
@@ -181,7 +180,7 @@ class CashRegister {
         this.lastSalesPrice = 0;
         //this.lastScanned = null;
         //finalizeSalesTransaction();
-        
+
     }
 
     /**
@@ -194,11 +193,11 @@ class CashRegister {
      */
     public void printReceipt() {
 
-            for (Map.Entry<Product, SalesRecord> sales : this.salesCacheP.entrySet()) {
-                this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
-            }
-            for (Map.Entry<Product, SalesRecord> sales : this.salesCache.entrySet()) {
-                this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
+        for (Map.Entry<Product, SalesRecord> sales : this.salesCacheP.entrySet()) {
+            this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
+        }
+        for (Map.Entry<Product, SalesRecord> sales : this.salesCache.entrySet()) {
+            this.printer.println("Product: " + sales.getKey().getDescription() + ", Sales price: " + sales.getValue().getSalesPrice() + ", Quantity: " + sales.getValue().getQuantity());
 
         }
 
