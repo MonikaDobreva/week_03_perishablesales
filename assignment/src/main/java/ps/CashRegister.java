@@ -65,8 +65,7 @@ class CashRegister {
 /*        if (this.lastScanned != null) {
             finalizeSalesTransaction();
         }*/
-
-
+        
         try {
             if(this.salesService.lookupProduct(barcode) == null){
                 this.ui.displayErrorMessage("No product found!");
