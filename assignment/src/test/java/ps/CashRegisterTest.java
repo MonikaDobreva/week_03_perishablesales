@@ -93,7 +93,6 @@ public class CashRegisterTest {
         })
                 .doesNotThrowAnyException();
 
-        //verify(salesService).lookupProduct(lamp.getBarcode());
 
         verify(ui, times(1)).displayProduct(productCaptor.capture());
 
@@ -289,9 +288,9 @@ public class CashRegisterTest {
      * Test scanning an unknown product results in error message on GUI.
      */
     @Test
-    public void lookupUnknownProductShouldDisplayErrorMessage() throws UnknownProductException {
+    public void lookupUnknownProductShouldDisplayErrorMessage() {
         //when(salesService.lookupProduct(123)).thenReturn(new Product("as", "sdsd", 123, 123, false));
-        when(salesService.lookupProduct(123)).thenReturn(null);
+       // when(salesService.lookupProduct(123)).thenReturn(null);
         cashRegister.scan(123);
         verify(ui).displayErrorMessage("This product is unknown");
         //fail( "method lookupUnknownProduct... reached end. You know what to do." );

@@ -63,41 +63,30 @@ class CashRegister {
      * @param barcode
      */
     public void scan(int barcode) {
-
         try {
-            if (this.salesService.lookupProduct(barcode) == null) {
-                this.ui.displayErrorMessage("This product is unknown");
-                return;
-            }
-
-            if (this.salesCache.containsKey(this.salesService.lookupProduct(barcode))) {
-                this.salesCache.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
-                return;
-            } else if (this.salesCacheP.containsKey(this.salesService.lookupProduct(barcode))) {
-                this.salesCacheP.get(this.salesService.lookupProduct(barcode)).increaseQuantity(1);
-            } else {
-                SalesRecord sale = new SalesRecord(barcode, LocalDate.now(this.clock), this.salesService.lookupProduct(barcode).getPrice());
-                if (this.salesService.lookupProduct(barcode).isPerishable()) {
-                    this.salesCacheP.put(this.salesService.lookupProduct(barcode), sale);
-                } else {
-                    this.salesCache.put(this.salesService.lookupProduct(barcode), sale);
-                }
-
-            }
-
             this.lastScanned = this.salesService.lookupProduct(barcode);
             this.ui.displayProduct(this.lastScanned);
 
-            if (this.lastScanned.isPerishable()) {
-                this.ui.displayCalendar();
+            if (this.salesCache.containsKey(this.lastScanned)) {
+                this.salesCache.get(lastScanned).increaseQuantity(1);
+            } else if (this.salesCacheP.containsKey(this.lastScanned)) {
+                this.salesCacheP.get(lastScanned).increaseQuantity(1);
             } else {
-                this.lastSalesPrice = this.lastScanned.getPrice();
-                this.lastBBDate = LocalDate.MAX;
+                if (this.lastScanned == null) {
+                    throw new UnknownProductException("This product is unknown");
+                } else {
+                    SalesRecord sale = new SalesRecord(barcode, LocalDate.now(this.clock), this.lastScanned.getPrice());
+                    if (this.lastScanned.isPerishable()) {
+                        this.salesCacheP.put(this.lastScanned, sale);
+                        this.ui.displayCalendar();
+                    } else {
+                        this.salesCache.put(this.lastScanned, sale);
+                    }
+                }
             }
         } catch (UnknownProductException e) {
-            e.printStackTrace();
+            ui.displayErrorMessage("This product is unknown");
         }
-
     }
 
     /**
